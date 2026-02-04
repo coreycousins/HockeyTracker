@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Tracker</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Play, Settings, History, Trash2, Download, Upload } = lucide;
+
+        const HockeyTracker = () => {
+          const defaultRoster = [
+            { id: 1, number: '4', name: 'Isaac', position: 'F', line: 1 },
+            { id: 2, number: '17', name: 'Brandon', position: 'F', line: 1 },
+            { id: 3, number: '7', name: 'Steph', position: 'F', line: 1 },
+            { id: 4, number: '19', name: 'Grady', position: 'F', line: 2 },
+            { id: 5, number: '6', name: 'Jack', position: 'F', line: 2 },
+            { id: 6, number: '12', name: 'Cole', position: 'F', line: 2 },
+            { id: 7, number: '11', name: 'James', position: 'F', line: 3 },
+            { id: 8, number: '2', name: 'Oliver', position: 'F', line: 3 },
+            { id: 9, number: '20', name: 'Logan', position: 'F', line: 3 },
+            { id: 10, number: '10', name: 'Bentley', position: 'D', line: 1 },
+            { id: 11, number: '3', name: 'Zach', position: 'D', line: 1 },
+            { id: 12, number: '9', name: 'Francesco', position: 'D', line: 2 },
+            { id: 13, number: '5', name: 'Spence', position: 'D', line: 2 },
+            { id: 14, number: '13', name: 'Declan', position: 'D', line: 3 },
+            { id: 15, number: '8', name: 'Evander', position: 'D', line: 3 },
+          ];
+
+          const [players, setPlayers] = useState(defaultRoster);
+          const [gameActive, setGameActive] = useState(false);
+          const [currentPeriod, setCurrentPeriod] = useState(1);
+          const [opponent, setOpponent] = useState('');
+          const [gameDate, setGameDate] = useState('');
+          const [activePlayer, setActivePlayer] = useState(null);
+          const [possessionTimes, setPossessionTimes] = useState({});
+          const [possessionTouches, setPossessionTouches] = useState({});
+          const [lastPossessionStart, setLastPossessionStart] = useState(null);
+          const [touchStartTime, setTouchStartTime] = useState(null);
+          const [showResults, setShowResults] = useState(false);
+          const [showRoster, setShowRoster] = useState(false);
+          const [showHistory, setShowHistory] = useState(false);
+          const [savedGames, setSavedGames] = useState([]);
+          const [selectedGame, setSelectedGame] = useState(null);
+          const [expandedPlayer, setExpandedPlayer] = useState(null);
+          const [activeDefenceLine, setActiveDefenceLine] = useState(1);
+          const [refTime, setRefTime] = useState('');
+
+          useEffect(() => {
+            loadGames();
+            initPossession();
+          }, []);
+
+          useEffect(() => {
+            if (selectedGame?.referenceTime) {
+              setRefTime(selectedGame.referenceTime);
+            }
+          }, [selectedGame]);
+
+          const loadGames = () => {
+            try {
+              const stored = localStorage.getItem('hockey-games');
+              if (stored) {
+                const games = JSON.parse(stored);
+                setSavedGames(games);
+              }
+            } catch (e) {
+              console.log(`Load error: ${e.message}`);
+            }
+          };
+
+          const initPossession = () => {
+            const times = {}, touches = {};
+            defaultRoster.forEach(p => {
+              times[p.id] = { 1: 0, 2: 0, 3: 0, total: 0 };
+              touches[p.id] = { 1: [], 2: [], 3: [] };
+            });
+            setPossessionTimes(times);
+            setPossessionTouches(touches);
+          };
+
+          const deleteGame = (id) => {
+            try {
+              const updated = savedGames.filter(g => g.id !== id);
+              localStorage.setItem('hockey-games', JSON.stringify(updated));
+              setSavedGames(updated);
+            } catch (e) {}
+          };
+
+          const updateGameRef = (id, newRefTime) => {
+            try {
+              const updated = savedGames.map(g => g.id === id ? { ...g, referenceTime: newRefTime } : g);
+              localStorage.setItem('hockey-games', JSON.stringify(updated));
+              setSavedGames(updated);
+            } catch (e) {}
+          };
+
+          useEffect(() => {
+            let interval;
+            if (activePlayer && gameActive) {
+              interval = setInterval(() => {
+                const now = Date.now();
+                const elapsed = now - lastPossessionStart;
+                setPossessionTimes(prev => ({
+                  ...prev,
+                  [activePlayer]: {
+                    ...prev[activePlayer],
+                    [currentPeriod]: (prev[activePlayer]?.[currentPeriod] || 0) + elapsed,
+                    total: (prev[activePlayer]?.total || 0) + elapsed
+                  }
+                }));
+                setLastPossessionStart(now);
+              }, 100);
+            }
+            return () => clearInterval(interval);
+          }, [activePlayer, gameActive, lastPossessionStart, currentPeriod]);
+
+          const startGame = () => {
+            if (!opponent.trim()) return alert('Enter opponent name');
+            setGameDate(new Date().toLocaleString());
+            setGameActive(true);
+          };
+
+          const handlePlayerClick = (playerId) => {
+            if (!gameActive) return;
+            const now = Date.now();
+            
+            if (activePlayer === playerId) {
+              setPossessionTouches(prev => ({
+                ...prev,
+                [playerId]: {
+                  ...prev[playerId],
+                  [currentPeriod]: [
+                    ...(prev[playerId]?.[currentPeriod] || []),
+                    {
+                      start: new Date(touchStartTime).toLocaleTimeString(),
+                      startMs: touchStartTime,
+                      end: new Date(now).toLocaleTimeString(),
+                      endMs: now,
+                      duration: now - touchStartTime
+                    }
+                  ]
+                }
+              }));
+              setActivePlayer(null);
+              setLastPossessionStart(null);
+              setTouchStartTime(null);
+            } else {
+              if (activePlayer && touchStartTime) {
+                setPossessionTouches(prev => ({
+                  ...prev,
+                  [activePlayer]: {
+                    ...prev[activePlayer],
+                    [currentPeriod]: [
+                      ...(prev[activePlayer]?.[currentPeriod] || []),
+                      {
+                        start: new Date(touchStartTime).toLocaleTimeString(),
+                        startMs: touchStartTime,
+                        end: new Date(now).toLocaleTimeString(),
+                        endMs: now,
+                        duration: now - touchStartTime
+                      }
+                    ]
+                  }
+                }));
+              }
+              setActivePlayer(playerId);
+              setLastPossessionStart(now);
+              setTouchStartTime(now);
+            }
+          };
+
+          const nextPeriod = () => {
+            if (currentPeriod < 3) {
+              if (activePlayer && touchStartTime) {
+                const now = Date.now();
+                setPossessionTouches(prev => ({
+                  ...prev,
+                  [activePlayer]: {
+                    ...prev[activePlayer],
+                    [currentPeriod]: [
+                      ...(prev[activePlayer]?.[currentPeriod] || []),
+                      {
+                        start: new Date(touchStartTime).toLocaleTimeString(),
+                        startMs: touchStartTime,
+                        end: new Date(now).toLocaleTimeString(),
+                        endMs: now,
+                        duration: now - touchStartTime
+                      }
+                    ]
+                  }
+                }));
+              }
+              setActivePlayer(null);
+              setLastPossessionStart(null);
+              setTouchStartTime(null);
+              setCurrentPeriod(currentPeriod + 1);
+            }
+          };
+
+          const endGame = () => {
+            if (activePlayer && touchStartTime) {
+              const now = Date.now();
+              setPossessionTouches(prev => ({
+                ...prev,
+                [activePlayer]: {
+                  ...prev[activePlayer],
+                  [currentPeriod]: [
+                    ...(prev[activePlayer]?.[currentPeriod] || []),
+                    {
+                      start: new Date(touchStartTime).toLocaleTimeString(),
+                      startMs: touchStartTime,
+                      end: new Date(now).toLocaleTimeString(),
+                      endMs: now,
+                      duration: now - touchStartTime
+                    }
+                  ]
+                }
+              }));
+            }
+            
+            setActivePlayer(null);
+            setLastPossessionStart(null);
+            setTouchStartTime(null);
+            setGameActive(false);
+            
+            const gameToSave = { 
+              opponent, 
+              date: gameDate, 
+              possessionTimes, 
+              possessionTouches, 
+              players, 
+              referenceTime: refTime 
+            };
+            
+            const newGame = {
+              id: Date.now(),
+              ...gameToSave
+            };
+            
+            try {
+              const updated = [newGame, ...savedGames];
+              localStorage.setItem('hockey-games', JSON.stringify(updated));
+              setSavedGames(updated);
+              setSelectedGame(newGame);
+            } catch (e) {
+              console.log(`Save failed: ${e.message}`);
+            }
+            
+            setShowResults(true);
+          };
+
+          const resetGame = () => {
+            setGameActive(false);
+            setCurrentPeriod(1);
+            setOpponent('');
+            setActivePlayer(null);
+            setLastPossessionStart(null);
+            setTouchStartTime(null);
+            setShowResults(false);
+            setSelectedGame(null);
+            setRefTime('');
+            initPossession();
+          };
+
+          const formatTime = (ms) => {
+            const sec = Math.floor(ms / 1000);
+            return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
+          };
+
+          const getRelTime = (ts, ref) => {
+            if (!ref) return null;
+            try {
+              const [h, m, s] = ref.split(':').map(Number);
+              const refDate = new Date();
+              refDate.setHours(h, m, s || 0, 0);
+              const diff = new Date(ts) - refDate;
+              if (diff < 0) return null;
+              const sec = Math.floor(diff / 1000);
+              return `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
+            } catch (e) {
+              return null;
+            }
+          };
+
+          const exportCSV = (game, ref) => {
+            const rows = [
+              ['Hockey Possession Tracker'],
+              ['Opponent', game.opponent],
+              ['Date', game.date]
+            ];
+            if (ref) rows.push(['Video Reference Time', ref]);
+            rows.push([]);
+            rows.push(['Position', 'Number', 'Name', 'Total']);
+            game.players.sort((a, b) => (game.possessionTimes[b.id]?.total || 0) - (game.possessionTimes[a.id]?.total || 0)).forEach(p => {
+              rows.push([p.position === 'F' ? 'Forward' : 'Defence', p.number, p.name, formatTime(game.possessionTimes[p.id]?.total || 0)]);
+            });
+            rows.push([]);
+            rows.push(['Touch Details']);
+            rows.push(ref ? ['Player', 'Period', 'Touch #', 'Start', 'End', 'Duration', 'Video Start', 'Video End'] : ['Player', 'Period', 'Touch #', 'Start', 'End', 'Duration']);
+            game.players.forEach(p => {
+              [1, 2, 3].forEach(per => {
+                (game.possessionTouches?.[p.id]?.[per] || []).forEach((t, i) => {
+                  const row = [`#${p.number} ${p.name}`, per, i + 1, t.start, t.end, formatTime(t.duration)];
+                  if (ref) {
+                    row.push(getRelTime(t.startMs, ref) || '', getRelTime(t.endMs, ref) || '');
+                  }
+                  rows.push(row);
+                });
+              });
+            });
+            const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `hockey-${game.opponent.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+          };
+
+          const importCSV = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              try {
+                const lines = ev.target.result.split('\n').map(l => {
+                  const m = l.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                  return m ? m.map(c => c.replace(/^"|"$/g, '')) : [];
+                });
+                let opp = '', dt = '', vref = '';
+                const plrs = {}, ptimes = {}, ptouch = {};
+                for (let i = 0; i < lines.length; i++) {
+                  const ln = lines[i];
+                  if (ln[0] === 'Opponent') opp = ln[1];
+                  else if (ln[0] === 'Date') dt = ln[1];
+                  else if (ln[0] === 'Video Reference Time') vref = ln[1];
+                  else if (ln[0] === 'Player' && ln[1] === 'Period') {
+                    i++;
+                    while (i < lines.length && lines[i][0]?.startsWith('#')) {
+                      const tl = lines[i];
+                      const pm = tl[0].match(/#(\d+)\s+(.+)/);
+                      if (pm) {
+                        const pid = `${pm[1]}-${pm[2]}`;
+                        if (!plrs[pid]) {
+                          plrs[pid] = { id: pid, number: pm[1], name: pm[2], position: 'F', line: 1 };
+                          ptimes[pid] = { 1: 0, 2: 0, 3: 0, total: 0 };
+                          ptouch[pid] = { 1: [], 2: [], 3: [] };
+                        }
+                        const per = parseInt(tl[1]);
+                        const dur = tl[5].split(':');
+                        const dms = (parseInt(dur[0]) * 60 + parseInt(dur[1])) * 1000;
+                        ptimes[pid][per] += dms;
+                        ptimes[pid].total += dms;
+                        ptouch[pid][per].push({ start: tl[3], startMs: Date.now(), end: tl[4], endMs: Date.now(), duration: dms });
+                      }
+                      i++;
+                    }
+                    break;
+                  }
+                }
+                setSelectedGame({ id: Date.now(), opponent: opp, date: dt, possessionTimes: ptimes, possessionTouches: ptouch, players: Object.values(plrs), referenceTime: vref });
+                setShowResults(true);
+                alert('Imported!');
+              } catch (err) {
+                alert('Import failed');
+              }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+          };
+
+          if (showHistory) {
+            return (
+              <div className="min-h-screen bg-slate-900 p-4">
+                <div className="max-w-2xl mx-auto bg-slate-800 rounded-lg p-6">
+                  <div className="flex justify-between mb-6">
+                    <h1 className="text-2xl font-bold text-white">History ({savedGames.length})</h1>
+                    <button onClick={() => setShowHistory(false)} className="bg-slate-700 text-white px-4 py-2 rounded">Back</button>
+                  </div>
+                  {savedGames.length === 0 ? (
+                    <div className="text-slate-400 text-center py-8">No games saved yet</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedGames.map(g => (
+                        <div key={g.id} className="bg-slate-700 rounded p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1 cursor-pointer" onClick={() => { setSelectedGame(g); setShowHistory(false); setShowResults(true); }}>
+                              <div className="text-white font-semibold">vs {g.opponent}</div>
+                              <div className="text-slate-400 text-sm">{g.date}</div>
+                            </div>
+                            <button onClick={() => deleteGame(g.id)} className="ml-4 bg-red-600 text-white p-2 rounded"><Trash2 size={18} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          if (showRoster) {
+            return (
+              <div className="min-h-screen bg-slate-900 p-4">
+                <div className="max-w-2xl mx-auto bg-slate-800 rounded-lg p-6">
+                  <div className="flex justify-between mb-6">
+                    <h1 className="text-2xl font-bold text-white">Edit Roster</h1>
+                    <button onClick={() => setShowRoster(false)} className="bg-green-600 text-white px-4 py-2 rounded">Done</button>
+                  </div>
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-white mb-4">Forwards</h2>
+                    {[1, 2, 3].map(line => (
+                      <div key={line} className="mb-4">
+                        <h3 className="text-sm text-slate-400 mb-2">Line {line}</h3>
+                        {players.filter(p => p.position === 'F' && p.line === line).map(p => (
+                          <div key={p.id} className="bg-slate-700 rounded p-3 mb-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-400">Number</label>
+                                <input value={p.number} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, number: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-400">Name</label>
+                                <input value={p.name} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, name: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-4">Defence</h2>
+                    {[1, 2, 3].map(line => (
+                      <div key={line} className="mb-4">
+                        <h3 className="text-sm text-slate-400 mb-2">Line {line}</h3>
+                        {players.filter(p => p.position === 'D' && p.line === line).map(p => (
+                          <div key={p.id} className="bg-slate-700 rounded p-3 mb-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-400">Number</label>
+                                <input value={p.number} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, number: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-400">Name</label>
+                                <input value={p.name} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, name: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (showResults) {
+            const game = selectedGame || { opponent, date: gameDate, possessionTimes, possessionTouches, players, referenceTime: '' };
+            
+            return (
+              <div className="min-h-screen bg-slate-900 p-4">
+                <div className="max-w-2xl mx-auto bg-slate-800 rounded-lg p-6">
+                  <h1 className="text-2xl font-bold text-white mb-4">Results</h1>
+                  <div className="text-slate-300 mb-4">
+                    <p><strong>Opponent:</strong> {game.opponent}</p>
+                    <p><strong>Date:</strong> {game.date}</p>
+                  </div>
+                  <div className="mb-6 bg-slate-700 rounded p-4">
+                    <label className="block text-sm text-slate-300 mb-2">Video Reference Time (optional)</label>
+                    <input
+                      type="text"
+                      value={refTime}
+                      onChange={(e) => {
+                        setRefTime(e.target.value);
+                        if (selectedGame) {
+                          updateGameRef(selectedGame.id, e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-slate-600 rounded text-white"
+                      placeholder="HH:MM:SS (e.g., 11:22:40)"
+                    />
+                  </div>
+                  <div className="bg-slate-700 rounded p-4 mb-4">
+                    <h3 className="text-lg font-bold text-white mb-3">Forwards</h3>
+                    {game.players.filter(p => p.position === 'F').sort((a, b) => (game.possessionTimes[b.id]?.total || 0) - (game.possessionTimes[a.id]?.total || 0)).map((p, i) => (
+                      <div key={p.id} className="mb-2">
+                        <div className="flex justify-between text-sm text-slate-300 cursor-pointer hover:bg-slate-600 p-2 rounded" onClick={() => setExpandedPlayer(expandedPlayer === p.id ? null : p.id)}>
+                          <span>{i + 1}. #{p.number} {p.name}</span>
+                          <span className="font-mono text-green-400">{formatTime(game.possessionTimes[p.id]?.total || 0)}</span>
+                        </div>
+                        {expandedPlayer === p.id && (
+                          <div className="ml-4 mt-2 bg-slate-800 rounded p-3">
+                            {[1, 2, 3].map(per => {
+                              const touches = game.possessionTouches?.[p.id]?.[per] || [];
+                              if (!touches.length) return null;
+                              return (
+                                <div key={per} className="mb-3">
+                                  <div className="text-xs font-semibold text-blue-400 mb-1">Period {per}</div>
+                                  {touches.map((t, idx) => {
+                                    const rs = getRelTime(t.startMs, refTime);
+                                    const re = getRelTime(t.endMs, refTime);
+                                    return (
+                                      <div key={idx} className="text-xs text-slate-300 mb-2 pl-2">
+                                        <div><span className="font-mono">{t.start}</span> → <span className="font-mono">{t.end}</span> <span className="text-slate-500">({formatTime(t.duration)})</span></div>
+                                        {rs && re && <div className="text-green-400 mt-1">Video: <span className="font-mono">{rs}</span> → <span className="font-mono">{re}</span></div>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-slate-700 rounded p-4 mb-4">
+                    <h3 className="text-lg font-bold text-white mb-3">Defence</h3>
+                    {game.players.filter(p => p.position === 'D').sort((a, b) => (game.possessionTimes[b.id]?.total || 0) - (game.possessionTimes[a.id]?.total || 0)).map((p, i) => (
+                      <div key={p.id} className="mb-2">
+                        <div className="flex justify-between text-sm text-slate-300 cursor-pointer hover:bg-slate-600 p-2 rounded" onClick={() => setExpandedPlayer(expandedPlayer === p.id ? null : p.id)}>
+                          <span>{i + 1}. #{p.number} {p.name}</span>
+                          <span className="font-mono text-green-400">{formatTime(game.possessionTimes[p.id]?.total || 0)}</span>
+                        </div>
+                        {expandedPlayer === p.id && (
+                          <div className="ml-4 mt-2 bg-slate-800 rounded p-3">
+                            {[1, 2, 3].map(per => {
+                              const touches = game.possessionTouches?.[p.id]?.[per] || [];
+                              if (!touches.length) return null;
+                              return (
+                                <div key={per} className="mb-3">
+                                  <div className="text-xs font-semibold text-blue-400 mb-1">Period {per}</div>
+                                  {touches.map((t, idx) => {
+                                    const rs = getRelTime(t.startMs, refTime);
+                                    const re = getRelTime(t.endMs, refTime);
+                                    return (
+                                      <div key={idx} className="text-xs text-slate-300 mb-2 pl-2">
+                                        <div><span className="font-mono">{t.start}</span> → <span className="font-mono">{t.end}</span> <span className="text-slate-500">({formatTime(t.duration)})</span></div>
+                                        {rs && re && <div className="text-green-400 mt-1">Video: <span className="font-mono">{rs}</span> → <span className="font-mono">{re}</span></div>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => { setShowResults(false); resetGame(); }} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded mb-3">New Game</button>
+                  <button onClick={() => exportCSV(game, refTime)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center gap-2"><Download size={20} />Export CSV</button>
+                </div>
+              </div>
+            );
+          }
+
+          if (!gameActive) {
+            return (
+              <div className="min-h-screen bg-slate-900 p-4">
+                <div className="max-w-md mx-auto bg-slate-800 rounded-lg p-6">
+                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker</h1>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-2">Opponent</label>
+                      <input value={opponent} onChange={(e) => setOpponent(e.target.value)} className="w-full px-3 py-2 bg-slate-700 rounded text-white" placeholder="Enter opponent" />
+                    </div>
+                    <button onClick={startGame} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded flex items-center justify-center gap-2"><Play size={20} />Start Game</button>
+                    <button onClick={() => setShowRoster(true)} className="w-full bg-slate-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2"><Settings size={18} />Edit Roster</button>
+                    <button onClick={() => setShowHistory(true)} className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2"><History size={18} />History ({savedGames.length})</button>
+                    <label className="w-full bg-orange-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2 cursor-pointer">
+                      <Upload size={18} />Import CSV
+                      <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-slate-900 p-4">
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-slate-800 rounded-lg p-4 mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h1 className="text-xl font-bold text-white">Period {currentPeriod}</h1>
+                    <div className="text-slate-300 text-sm">vs {opponent}</div>
+                  </div>
+                  <div className="flex gap-2 mb-3">
+                    {currentPeriod < 3 && <button onClick={nextPeriod} className="flex-1 bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm">Next Period</button>}
+                    <button onClick={endGame} className="flex-1 bg-red-600 text-white font-bold py-2 px-4 rounded text-sm">End Game</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-xs text-slate-400">D:</span>
+                    {[1, 2, 3].map(line => {
+                      const pair = players.filter(p => p.position === 'D' && p.line === line);
+                      return <button key={line} onClick={() => setActiveDefenceLine(line)} className={`flex-1 px-2 py-1 rounded text-xs font-bold truncate ${activeDefenceLine === line ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>{pair.map(p => p.name).join('/')}</button>;
+                    })}
+                  </div>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 mb-3">
+                  {[1, 2, 3].map(line => (
+                    <div key={line} className="mb-3 last:mb-0">
+                      <div className="grid grid-cols-3 gap-2">
+                        {players.filter(p => p.position === 'F' && p.line === line).map(p => (
+                          <button key={p.id} onClick={() => handlePlayerClick(p.id)} className={`p-3 rounded-lg font-semibold transition-all ${activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <div className="text-lg">#{p.number}</div>
+                            <div className="text-xs truncate">{p.name}</div>
+                            <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {players.filter(p => p.position === 'D' && p.line === activeDefenceLine).map(p => (
+                      <button key={p.id} onClick={() => handlePlayerClick(p.id)} className={`p-3 rounded-lg font-semibold transition-all ${activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                        <div className="text-lg">#{p.number}</div>
+                        <div className="text-xs truncate">{p.name}</div>
+                        <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
+                      </button>
+                    ))}
+                  </div>
+                  {[1, 2, 3].filter(line => line !== activeDefenceLine).map(line => (
+                    <div key={line} className="mb-3 last:mb-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        {players.filter(p => p.position === 'D' && p.line === line).map(p => (
+                          <button key={p.id} onClick={() => handlePlayerClick(p.id)} className={`p-3 rounded-lg font-semibold transition-all ${activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                            <div className="text-lg">#{p.number}</div>
+                            <div className="text-xs truncate">{p.name}</div>
+                            <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<HockeyTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
