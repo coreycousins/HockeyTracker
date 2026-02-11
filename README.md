@@ -1,4 +1,4 @@
-# Hockey Tracker v1.0
+# Hockey Tracker v1.1
 
 A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
