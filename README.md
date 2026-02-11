@@ -1,15 +1,16 @@
-# Hockey Tracker
+# Hockey Tracker v1.0
 
-A mobile-optimized puck possession tracking app for youth hockey teams. Track individual player possession times during live games with detailed touch-by-touch analysis and video reference timestamps.
+A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
 ## Features
 
-- **Real-time Possession Tracking**: Click players to track possession during live games
+- **Real-time Possession Tracking**: Tap players to track possession during live games
+- **Shot & Goal Tracking**: Long-press to record shots, double-tap to record goals
 - **Defense Line Quick Selector**: Fast access to active defense pairs
-- **Period Management**: Track across all 3 periods
+- **Period Management**: Track across all 3 periods with per-period breakdowns
 - **Game History**: Save and review past games with persistent storage
-- **Video Reference Timestamps**: Correlate possession data with game video
-- **CSV Export/Import**: Export detailed reports for analysis
+- **Video Reference Timestamps**: Correlate possession, shot, and goal data with game video
+- **CSV Export/Import**: Export detailed reports including shot/goal events for analysis
 - **Mobile Optimized**: Designed for iPhone use during games
 
 ## Quick Start - GitHub Pages Deployment
@@ -67,16 +68,20 @@ Then you can:
 - **Single tap**: Start tracking possession for that player
 - **Tap again**: End possession (creates a "touch")
 - **Different player tap**: Switches possession
+- **Long-press (~500ms)**: Record a shot on goal (yellow flash)
+- **Double-tap (<300ms)**: Record a goal (amber flash, also counts as a shot)
 - Active player shows in green with live timer
+- Shot/goal counts displayed on player buttons (S:# G:#)
 - Use "Next Period" button between periods
 - Use "End Game" when finished
 
 ### After Game
 - Review possession statistics sorted by total time
-- Expand players to see period-by-period touch details
+- View shots, goals, and shooting percentage per player
+- Expand players to see timestamped shot/goal events and possession touches per period
 - Add video reference time (HH:MM:SS format)
 - Export CSV for detailed analysis
-- CSV includes video timestamps when reference time is set
+- CSV includes shot/goal details and video timestamps when reference time is set
 
 ### Game History
 - View all saved games
@@ -104,7 +109,6 @@ Game data is stored in your browser's localStorage:
 - Season statistics aggregation
 - Line combination analysis
 - Real-time game clock
-- Shot attempt tracking
 - Plus/minus tracking
 
 ## License
