@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hockey Tracker v1.0</title>
+    <title>Hockey Tracker v1.1</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -157,7 +157,33 @@
             flashTimeoutRef.current = setTimeout(() => setFlashPlayer(null), 400);
           };
 
+          const endCurrentPossession = () => {
+            if (activePlayer && touchStartTime) {
+              const now = Date.now();
+              setPossessionTouches(prev => ({
+                ...prev,
+                [activePlayer]: {
+                  ...prev[activePlayer],
+                  [currentPeriod]: [
+                    ...(prev[activePlayer]?.[currentPeriod] || []),
+                    {
+                      start: new Date(touchStartTime).toLocaleTimeString(),
+                      startMs: touchStartTime,
+                      end: new Date(now).toLocaleTimeString(),
+                      endMs: now,
+                      duration: now - touchStartTime
+                    }
+                  ]
+                }
+              }));
+              setActivePlayer(null);
+              setLastPossessionStart(null);
+              setTouchStartTime(null);
+            }
+          };
+
           const recordShot = (playerId) => {
+            endCurrentPossession();
             const now = Date.now();
             setShotCounts(prev => ({
               ...prev,
@@ -181,6 +207,7 @@
           };
 
           const recordGoal = (playerId) => {
+            endCurrentPossession();
             const now = Date.now();
             setShotCounts(prev => ({
               ...prev,
@@ -843,7 +870,7 @@
             return (
               <div className="min-h-screen bg-slate-900 p-4">
                 <div className="max-w-md mx-auto bg-slate-800 rounded-lg p-6">
-                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.0</span></h1>
+                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.1</span></h1>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm text-slate-300 mb-2">Opponent</label>
