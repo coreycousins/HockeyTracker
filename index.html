@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hockey Tracker v1.1</title>
+    <title>Hockey Tracker v1.2</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -103,6 +103,7 @@
           const [shotLog, setShotLog] = useState({});
           const [goalLog, setGoalLog] = useState({});
           const [flashPlayer, setFlashPlayer] = useState(null);
+          const [swapPlayer, setSwapPlayer] = useState(null);
           const longPressTimerRef = React.useRef(null);
           const tapTimeoutRef = React.useRef(null);
           const lastTapTimeRef = React.useRef(0);
@@ -632,6 +633,21 @@
             e.target.value = '';
           };
 
+          const handlePlayerSwap = (player) => {
+            if (!swapPlayer) {
+              setSwapPlayer(player);
+            } else if (swapPlayer.id === player.id) {
+              setSwapPlayer(null);
+            } else {
+              setPlayers(prev => prev.map(p => {
+                if (p.id === swapPlayer.id) return { ...p, line: player.line, position: player.position };
+                if (p.id === player.id) return { ...p, line: swapPlayer.line, position: swapPlayer.position };
+                return p;
+              }));
+              setSwapPlayer(null);
+            }
+          };
+
           if (showHistory) {
             return (
               <div className="min-h-screen bg-slate-900 p-4">
@@ -663,32 +679,43 @@
           }
 
           if (showRoster) {
+            const rosterCard = (p) => {
+              const isSelected = swapPlayer?.id === p.id;
+              const isSwapTarget = swapPlayer && swapPlayer.id !== p.id;
+              return (
+                <div key={p.id} onClick={(e) => { if (e.target.tagName === 'INPUT') return; handlePlayerSwap(p); }} className={`rounded p-3 mb-2 cursor-pointer transition-all ${isSelected ? 'bg-cyan-700 ring-2 ring-cyan-400' : isSwapTarget ? 'bg-slate-600 ring-1 ring-cyan-600' : 'bg-slate-700'}`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-white">#{p.number} {p.name}</span>
+                    {isSelected && <span className="text-xs bg-cyan-500 text-white px-2 py-0.5 rounded">Selected</span>}
+                    {isSwapTarget && <span className="text-xs text-cyan-400">Tap to swap</span>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400">Number</label>
+                      <input value={p.number} onClick={(e) => e.stopPropagation()} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, number: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400">Name</label>
+                      <input value={p.name} onClick={(e) => e.stopPropagation()} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, name: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
+                    </div>
+                  </div>
+                </div>
+              );
+            };
             return (
               <div className="min-h-screen bg-slate-900 p-4">
                 <div className="max-w-2xl mx-auto bg-slate-800 rounded-lg p-6">
-                  <div className="flex justify-between mb-6">
+                  <div className="flex justify-between mb-4">
                     <h1 className="text-2xl font-bold text-white">Edit Roster</h1>
-                    <button onClick={() => setShowRoster(false)} className="bg-green-600 text-white px-4 py-2 rounded">Done</button>
+                    <button onClick={() => { setShowRoster(false); setSwapPlayer(null); }} className="bg-green-600 text-white px-4 py-2 rounded">Done</button>
                   </div>
+                  <p className="text-xs text-slate-400 mb-6">Tap a player to select, then tap another to swap positions</p>
                   <div className="mb-6">
                     <h2 className="text-xl font-bold text-white mb-4">Forwards</h2>
                     {[1, 2, 3].map(line => (
                       <div key={line} className="mb-4">
                         <h3 className="text-sm text-slate-400 mb-2">Line {line}</h3>
-                        {players.filter(p => p.position === 'F' && p.line === line).map(p => (
-                          <div key={p.id} className="bg-slate-700 rounded p-3 mb-2">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-slate-400">Number</label>
-                                <input value={p.number} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, number: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-400">Name</label>
-                                <input value={p.name} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, name: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        {players.filter(p => p.position === 'F' && p.line === line).map(rosterCard)}
                       </div>
                     ))}
                   </div>
@@ -697,20 +724,7 @@
                     {[1, 2, 3].map(line => (
                       <div key={line} className="mb-4">
                         <h3 className="text-sm text-slate-400 mb-2">Line {line}</h3>
-                        {players.filter(p => p.position === 'D' && p.line === line).map(p => (
-                          <div key={p.id} className="bg-slate-700 rounded p-3 mb-2">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs text-slate-400">Number</label>
-                                <input value={p.number} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, number: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-400">Name</label>
-                                <input value={p.name} onChange={(e) => setPlayers(prev => prev.map(pl => pl.id === p.id ? { ...pl, name: e.target.value } : pl))} className="w-full mt-1 px-2 py-1 bg-slate-600 rounded text-white" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        {players.filter(p => p.position === 'D' && p.line === line).map(rosterCard)}
                       </div>
                     ))}
                   </div>
@@ -870,7 +884,7 @@
             return (
               <div className="min-h-screen bg-slate-900 p-4">
                 <div className="max-w-md mx-auto bg-slate-800 rounded-lg p-6">
-                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.1</span></h1>
+                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.2</span></h1>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm text-slate-300 mb-2">Opponent</label>
