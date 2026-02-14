@@ -105,6 +105,7 @@
           const [goalLog, setGoalLog] = useState({});
           const [flashPlayer, setFlashPlayer] = useState(null);
           const [swapPlayer, setSwapPlayer] = useState(null);
+          const [editingLines, setEditingLines] = useState(false);
           const longPressTimerRef = React.useRef(null);
           const tapTimeoutRef = React.useRef(null);
           const lastTapTimeRef = React.useRef(0);
@@ -403,6 +404,8 @@
               setActivePlayer(null);
               setLastPossessionStart(null);
               setTouchStartTime(null);
+              setEditingLines(false);
+              setSwapPlayer(null);
               setCurrentPeriod(currentPeriod + 1);
             }
           };
@@ -431,8 +434,10 @@
             setActivePlayer(null);
             setLastPossessionStart(null);
             setTouchStartTime(null);
+            setEditingLines(false);
+            setSwapPlayer(null);
             setGameActive(false);
-            
+
             const gameToSave = {
               opponent,
               date: gameDate,
@@ -470,6 +475,8 @@
             setActivePlayer(null);
             setLastPossessionStart(null);
             setTouchStartTime(null);
+            setEditingLines(false);
+            setSwapPlayer(null);
             setShowResults(false);
             setShowOverallStats(false);
             setSelectedGame(null);
@@ -1056,6 +1063,14 @@
                   </div>
                   <div className="flex gap-2 mb-3">
                     {currentPeriod < 3 && <button onClick={nextPeriod} className="flex-1 bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm">Next Period</button>}
+                    <button onClick={() => {
+                      if (!editingLines) {
+                        endCurrentPossession();
+                      } else {
+                        setSwapPlayer(null);
+                      }
+                      setEditingLines(!editingLines);
+                    }} className={`flex-1 font-bold py-2 px-4 rounded text-sm ${editingLines ? 'bg-cyan-600 text-white' : 'bg-slate-600 text-white'}`}>{editingLines ? 'Done Editing' : 'Edit Lines'}</button>
                     <button onClick={endGame} className="flex-1 bg-red-600 text-white font-bold py-2 px-4 rounded text-sm">End Game</button>
                   </div>
                   <div className="flex gap-2">
@@ -1073,8 +1088,12 @@
                         {players.filter(p => p.position === 'F' && p.line === line).map(p => {
                           const isFlashing = flashPlayer?.id === p.id;
                           const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                          const isSwapSelected = editingLines && swapPlayer?.id === p.id;
+                          const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                           return (
-                          <button key={p.id} onPointerDown={() => handlePointerDown(p.id)} onPointerUp={() => handlePointerUp(p.id)} onPointerLeave={handlePointerCancel} onPointerCancel={handlePointerCancel} onContextMenu={(e) => e.preventDefault()} className={`p-3 rounded-lg font-semibold transition-all ${isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                          <button key={p.id}
+                            {...(editingLines ? { onClick: () => handlePlayerSwap(p) } : { onPointerDown: () => handlePointerDown(p.id), onPointerUp: () => handlePointerUp(p.id), onPointerLeave: handlePointerCancel, onPointerCancel: handlePointerCancel, onContextMenu: (e) => e.preventDefault() })}
+                            className={`p-3 rounded-lg font-semibold transition-all ${editingLines ? (isSwapSelected ? 'bg-cyan-700 ring-2 ring-cyan-400 text-white' : isSwapTarget ? 'bg-slate-600 ring-1 ring-cyan-600 text-slate-300' : 'bg-slate-700 text-slate-300') : (isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600')}`}>
                             <div className="text-lg">#{p.number}</div>
                             <div className="text-xs truncate">{p.name}</div>
                             <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
@@ -1091,8 +1110,12 @@
                     {players.filter(p => p.position === 'D' && p.line === activeDefenceLine).map(p => {
                       const isFlashing = flashPlayer?.id === p.id;
                       const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                      const isSwapSelected = editingLines && swapPlayer?.id === p.id;
+                      const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                       return (
-                      <button key={p.id} onPointerDown={() => handlePointerDown(p.id)} onPointerUp={() => handlePointerUp(p.id)} onPointerLeave={handlePointerCancel} onPointerCancel={handlePointerCancel} onContextMenu={(e) => e.preventDefault()} className={`p-3 rounded-lg font-semibold transition-all ${isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                      <button key={p.id}
+                        {...(editingLines ? { onClick: () => handlePlayerSwap(p) } : { onPointerDown: () => handlePointerDown(p.id), onPointerUp: () => handlePointerUp(p.id), onPointerLeave: handlePointerCancel, onPointerCancel: handlePointerCancel, onContextMenu: (e) => e.preventDefault() })}
+                        className={`p-3 rounded-lg font-semibold transition-all ${editingLines ? (isSwapSelected ? 'bg-cyan-700 ring-2 ring-cyan-400 text-white' : isSwapTarget ? 'bg-slate-600 ring-1 ring-cyan-600 text-slate-300' : 'bg-slate-700 text-slate-300') : (isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600')}`}>
                         <div className="text-lg">#{p.number}</div>
                         <div className="text-xs truncate">{p.name}</div>
                         <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
@@ -1107,8 +1130,12 @@
                         {players.filter(p => p.position === 'D' && p.line === line).map(p => {
                           const isFlashing = flashPlayer?.id === p.id;
                           const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                          const isSwapSelected = editingLines && swapPlayer?.id === p.id;
+                          const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                           return (
-                          <button key={p.id} onPointerDown={() => handlePointerDown(p.id)} onPointerUp={() => handlePointerUp(p.id)} onPointerLeave={handlePointerCancel} onPointerCancel={handlePointerCancel} onContextMenu={(e) => e.preventDefault()} className={`p-3 rounded-lg font-semibold transition-all ${isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                          <button key={p.id}
+                            {...(editingLines ? { onClick: () => handlePlayerSwap(p) } : { onPointerDown: () => handlePointerDown(p.id), onPointerUp: () => handlePointerUp(p.id), onPointerLeave: handlePointerCancel, onPointerCancel: handlePointerCancel, onContextMenu: (e) => e.preventDefault() })}
+                            className={`p-3 rounded-lg font-semibold transition-all ${editingLines ? (isSwapSelected ? 'bg-cyan-700 ring-2 ring-cyan-400 text-white' : isSwapTarget ? 'bg-slate-600 ring-1 ring-cyan-600 text-slate-300' : 'bg-slate-700 text-slate-300') : (isFlashing ? flashClass : activePlayer === p.id ? 'bg-green-600 text-white shadow-lg scale-105' : 'bg-slate-700 text-slate-300 hover:bg-slate-600')}`}>
                             <div className="text-lg">#{p.number}</div>
                             <div className="text-xs truncate">{p.name}</div>
                             <div className="text-xs font-mono mt-1">{formatTime(possessionTimes[p.id]?.[currentPeriod] || 0)}</div>
