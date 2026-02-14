@@ -474,6 +474,14 @@
             }
             
             setShowResults(true);
+
+            // Restore roster to last Edit Roster save
+            try {
+              const savedRoster = localStorage.getItem('hockey-roster');
+              setPlayers(savedRoster ? JSON.parse(savedRoster) : defaultRoster);
+            } catch (e) {
+              setPlayers(defaultRoster);
+            }
           };
 
           const resetGame = () => {
