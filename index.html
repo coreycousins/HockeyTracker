@@ -725,11 +725,14 @@
             } else if (swapPlayer.id === player.id) {
               setSwapPlayer(null);
             } else {
-              setPlayers(prev => prev.map(p => {
-                if (p.id === swapPlayer.id) return { ...p, line: player.line, position: player.position };
-                if (p.id === player.id) return { ...p, line: swapPlayer.line, position: swapPlayer.position };
-                return p;
-              }));
+              setPlayers(prev => {
+                const newPlayers = [...prev];
+                const idx1 = newPlayers.findIndex(p => p.id === swapPlayer.id);
+                const idx2 = newPlayers.findIndex(p => p.id === player.id);
+                newPlayers[idx1] = { ...player, line: swapPlayer.line, position: swapPlayer.position };
+                newPlayers[idx2] = { ...swapPlayer, line: player.line, position: player.position };
+                return newPlayers;
+              });
               setSwapPlayer(null);
             }
           };
