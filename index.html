@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hockey Tracker v1.5</title>
+    <title>Hockey Tracker v1.6</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -80,7 +80,15 @@
             { id: 15, number: '8', name: 'Evander', position: 'D', line: 3 },
           ];
 
-          const [players, setPlayers] = useState(defaultRoster);
+          const [players, setPlayers] = useState(() => {
+            try {
+              const saved = localStorage.getItem('hockey-roster');
+              if (saved) return JSON.parse(saved);
+            } catch (e) {
+              alert('Saved roster data was corrupted and has been reset to defaults.');
+            }
+            return defaultRoster;
+          });
           const [gameActive, setGameActive] = useState(false);
           const [currentPeriod, setCurrentPeriod] = useState(1);
           const [opponent, setOpponent] = useState('');
@@ -860,7 +868,7 @@
                 <div className="max-w-2xl mx-auto bg-slate-800 rounded-lg p-6">
                   <div className="flex justify-between mb-4">
                     <h1 className="text-2xl font-bold text-white">Edit Roster</h1>
-                    <button onClick={() => { setShowRoster(false); setSwapPlayer(null); }} className="bg-green-600 text-white px-4 py-2 rounded">Done</button>
+                    <button onClick={() => { localStorage.setItem('hockey-roster', JSON.stringify(players)); setShowRoster(false); setSwapPlayer(null); }} className="bg-green-600 text-white px-4 py-2 rounded">Done</button>
                   </div>
                   <p className="text-xs text-slate-400 mb-6">Tap a player to select, then tap another to swap positions</p>
                   <div className="mb-6">
