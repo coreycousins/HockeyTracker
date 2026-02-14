@@ -1,4 +1,4 @@
-# Hockey Tracker v1.4
+# Hockey Tracker v1.5
 
 A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
@@ -10,7 +10,7 @@ A mobile-optimized puck possession and shot tracking app for youth hockey teams.
 - **Period Management**: Track across all 3 periods with per-period breakdowns
 - **Game History**: Save and review past games with persistent storage
 - **Video Reference Timestamps**: Correlate possession, shot, and goal data with game video
-- **Roster Swap**: Tap-to-select-and-swap players between lines and positions in Edit Roster
+- **Roster Swap**: Tap-to-select-and-swap players between lines, positions, or within the same line in Edit Roster
 - **In-Game Line Editing**: Adjust lines mid-game without ending the game — tap "Edit Lines" to swap players between lines, then "Done Editing" to resume tracking
 - **Overall Stats**: View aggregate possession, shots, and goals across all saved games with per-game averages and CSV export
 - **Delete Confirmation**: Confirmation dialog before deleting historical game reports
@@ -66,7 +66,7 @@ Then you can:
 1. From the home screen, tap "Edit Roster"
 2. Edit player names and numbers directly in the input fields
 3. To move players between lines/positions: tap a player to select them (highlighted in cyan), then tap another player to swap their positions
-4. Forwards can swap with other forwards, defence with defence, or across positions
+4. Players can swap across lines, across positions, or within the same line (e.g., swap two forwards on the same line to reorder them)
 5. Tap "Done" when finished
 
 ### Starting a Game
