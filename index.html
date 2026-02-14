@@ -287,6 +287,7 @@
           };
 
           const deleteGame = (id) => {
+            if (!window.confirm('Are you sure you want to delete this game?')) return;
             try {
               const updated = savedGames.filter(g => g.id !== id);
               localStorage.setItem('hockey-games', JSON.stringify(updated));
