@@ -1,4 +1,4 @@
-# Hockey Tracker v1.2
+# Hockey Tracker v1.3
 
 A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
@@ -11,6 +11,8 @@ A mobile-optimized puck possession and shot tracking app for youth hockey teams.
 - **Game History**: Save and review past games with persistent storage
 - **Video Reference Timestamps**: Correlate possession, shot, and goal data with game video
 - **Roster Swap**: Tap-to-select-and-swap players between lines and positions in Edit Roster
+- **Overall Stats**: View aggregate possession, shots, and goals across all saved games with per-game averages and CSV export
+- **Delete Confirmation**: Confirmation dialog before deleting historical game reports
 - **CSV Export/Import**: Export detailed reports including shot/goal events for analysis
 - **Mobile Optimized**: Designed for iPhone use during games
 
@@ -94,8 +96,15 @@ Then you can:
 ### Game History
 - View all saved games
 - Click any game to review stats
-- Delete old games as needed
+- Delete old games with confirmation prompt
 - Import CSV files from other devices
+
+### Overall Stats
+- From History, tap "Overall Stats" to view aggregate data across all games
+- Team summary shows total and average possession, shots, goals, and shooting %
+- Per-player stats separated by forwards and defence, sorted by possession
+- Shows games played, totals, and per-game averages for each player
+- Export overall stats to CSV
 
 ## Data Storage
 
@@ -114,7 +123,6 @@ Game data is stored in your browser's localStorage:
 ## Future Development Ideas
 
 - Multiple team rosters
-- Season statistics aggregation
 - Line combination analysis
 - Real-time game clock
 - Plus/minus tracking
