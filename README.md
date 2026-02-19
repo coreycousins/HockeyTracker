@@ -1,4 +1,4 @@
-# Hockey Tracker v1.2
+# Hockey Tracker v1.7
 
 A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
@@ -10,7 +10,11 @@ A mobile-optimized puck possession and shot tracking app for youth hockey teams.
 - **Period Management**: Track across all 3 periods with per-period breakdowns
 - **Game History**: Save and review past games with persistent storage
 - **Video Reference Timestamps**: Correlate possession, shot, and goal data with game video
-- **Roster Swap**: Tap-to-select-and-swap players between lines and positions in Edit Roster
+- **Roster Swap**: Tap-to-select-and-swap players between lines, positions, or within the same line in Edit Roster
+- **In-Game Line Editing**: Adjust lines mid-game without ending the game — tap "Edit Lines" to swap players between lines, then "Done Editing" to resume tracking
+- **Persistent Roster**: Roster changes made in Edit Roster (names, numbers, line/position swaps) auto-save to localStorage and persist across sessions. In-game line edits do not affect the saved roster
+- **Overall Stats**: View aggregate possession, shots, and goals across all saved games with per-game averages and CSV export
+- **Delete Confirmation**: Confirmation dialog before deleting historical game reports
 - **CSV Export/Import**: Export detailed reports including shot/goal events for analysis
 - **Mobile Optimized**: Designed for iPhone use during games
 
@@ -63,7 +67,7 @@ Then you can:
 1. From the home screen, tap "Edit Roster"
 2. Edit player names and numbers directly in the input fields
 3. To move players between lines/positions: tap a player to select them (highlighted in cyan), then tap another player to swap their positions
-4. Forwards can swap with other forwards, defence with defence, or across positions
+4. Players can swap across lines, across positions, or within the same line (e.g., swap two forwards on the same line to reorder them)
 5. Tap "Done" when finished
 
 ### Starting a Game
@@ -80,6 +84,7 @@ Then you can:
 - **Double-tap (<300ms)**: Record a goal (amber flash, also counts as a shot)
 - Active player shows in green with live timer
 - Shot/goal counts displayed on player buttons (S:# G:#)
+- **Edit Lines**: Tap "Edit Lines" to enter swap mode — tap a player (cyan highlight), then tap another to swap their lines. Tap "Done Editing" to resume possession tracking. Possession timer pauses automatically while editing.
 - Use "Next Period" button between periods
 - Use "End Game" when finished
 
@@ -94,12 +99,19 @@ Then you can:
 ### Game History
 - View all saved games
 - Click any game to review stats
-- Delete old games as needed
+- Delete old games with confirmation prompt
 - Import CSV files from other devices
+
+### Overall Stats
+- From History, tap "Overall Stats" to view aggregate data across all games
+- Team summary shows total and average possession, shots, goals, and shooting %
+- Per-player stats separated by forwards and defence, sorted by possession
+- Shows games played, totals, and per-game averages for each player
+- Export overall stats to CSV
 
 ## Data Storage
 
-Game data is stored in your browser's localStorage:
+Game data and roster changes are stored in your browser's localStorage:
 - Data persists between sessions
 - Tied to the specific browser/device
 - Not synced across devices
@@ -114,7 +126,6 @@ Game data is stored in your browser's localStorage:
 ## Future Development Ideas
 
 - Multiple team rosters
-- Season statistics aggregation
 - Line combination analysis
 - Real-time game clock
 - Plus/minus tracking
