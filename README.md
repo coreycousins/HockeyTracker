@@ -1,4 +1,4 @@
-# Hockey Tracker v1.7
+# Hockey Tracker v1.8
 
 A mobile-optimized puck possession and shot tracking app for youth hockey teams. Track individual player possession times, shots on goal, and goals during live games with detailed touch-by-touch analysis and video reference timestamps.
 
@@ -14,6 +14,8 @@ A mobile-optimized puck possession and shot tracking app for youth hockey teams.
 - **In-Game Line Editing**: Adjust lines mid-game without ending the game — tap "Edit Lines" to swap players between lines, then "Done Editing" to resume tracking
 - **Persistent Roster**: Roster changes made in Edit Roster (names, numbers, line/position swaps) auto-save to localStorage and persist across sessions. In-game line edits do not affect the saved roster
 - **Overall Stats**: View aggregate possession, shots, and goals across all saved games with per-game averages and CSV export
+- **Possession Heat Colors**: Player buttons tint from cool blue to hot red based on total possession time, letting you see whole-team involvement at a glance
+- **Pass Tracking**: When possession transfers directly from one player to another, a pass is credited to the outgoing player and displayed as `P:#` on their button
 - **Undo Shots & Goals**: After recording a shot or goal, an undo toast appears for 5 seconds between the forward and defence sections — tap Undo to revert the action
 - **Delete Confirmation**: Confirmation dialog before deleting historical game reports
 - **CSV Export/Import**: Export detailed reports including shot/goal events for analysis
@@ -85,14 +87,15 @@ Then you can:
 - **Double-tap (<300ms)**: Record a goal (red flash, also counts as a shot)
 - **Undo**: After a shot or goal, an undo bar appears for 5 seconds — tap "Undo" to revert
 - Active player shows in green with live timer
-- Shot/goal counts displayed on player buttons (S:# G:#)
+- Player buttons gradually shift color (cool blue → teal → orange → red) based on total possession time
+- Pass/shot/goal counts displayed on player buttons (P:# S:# G:#) — passes are counted when possession transfers directly between players
 - **Edit Lines**: Tap "Edit Lines" to enter swap mode — tap a player (cyan highlight), then tap another to swap their lines. Tap "Done Editing" to resume possession tracking. Possession timer pauses automatically while editing.
 - Use "Next Period" button between periods
 - Use "End Game" when finished
 
 ### After Game
 - Review possession statistics sorted by total time
-- View shots, goals, and shooting percentage per player
+- View passes, shots, goals, and shooting percentage per player
 - Expand players to see timestamped shot/goal events and possession touches per period
 - Add video reference time (HH:MM:SS format)
 - Export CSV for detailed analysis
@@ -106,7 +109,7 @@ Then you can:
 
 ### Overall Stats
 - From History, tap "Overall Stats" to view aggregate data across all games
-- Team summary shows total and average possession, shots, goals, and shooting %
+- Team summary shows total and average possession, passes, shots, goals, and shooting %
 - Per-player stats separated by forwards and defence, sorted by possession
 - Shows games played, totals, and per-game averages for each player
 - Export overall stats to CSV
