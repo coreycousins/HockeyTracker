@@ -14,6 +14,7 @@ A mobile-optimized puck possession and shot tracking app for youth hockey teams.
 - **In-Game Line Editing**: Adjust lines mid-game without ending the game — tap "Edit Lines" to swap players between lines, then "Done Editing" to resume tracking
 - **Persistent Roster**: Roster changes made in Edit Roster (names, numbers, line/position swaps) auto-save to localStorage and persist across sessions. In-game line edits do not affect the saved roster
 - **Overall Stats**: View aggregate possession, shots, and goals across all saved games with per-game averages and CSV export
+- **Undo Shots & Goals**: After recording a shot or goal, an undo toast appears for 5 seconds between the forward and defence sections — tap Undo to revert the action
 - **Delete Confirmation**: Confirmation dialog before deleting historical game reports
 - **CSV Export/Import**: Export detailed reports including shot/goal events for analysis
 - **Mobile Optimized**: Designed for iPhone use during games
@@ -81,7 +82,8 @@ Then you can:
 - **Tap again**: End possession (creates a "touch")
 - **Different player tap**: Switches possession
 - **Long-press (~500ms)**: Record a shot on goal (yellow flash)
-- **Double-tap (<300ms)**: Record a goal (amber flash, also counts as a shot)
+- **Double-tap (<300ms)**: Record a goal (red flash, also counts as a shot)
+- **Undo**: After a shot or goal, an undo bar appears for 5 seconds — tap "Undo" to revert
 - Active player shows in green with live timer
 - Shot/goal counts displayed on player buttons (S:# G:#)
 - **Edit Lines**: Tap "Edit Lines" to enter swap mode — tap a player (cyan highlight), then tap another to swap their lines. Tap "Done Editing" to resume possession tracking. Possession timer pauses automatically while editing.
