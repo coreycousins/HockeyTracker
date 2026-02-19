@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hockey Tracker v1.6</title>
+    <title>Hockey Tracker v1.7</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -114,7 +114,9 @@
           const [flashPlayer, setFlashPlayer] = useState(null);
           const [swapPlayer, setSwapPlayer] = useState(null);
           const [editingLines, setEditingLines] = useState(false);
+          const [undoAction, setUndoAction] = useState(null);
           const longPressTimerRef = React.useRef(null);
+          const undoTimerRef = React.useRef(null);
           const tapTimeoutRef = React.useRef(null);
           const lastTapTimeRef = React.useRef(0);
           const lastTapPlayerRef = React.useRef(null);
@@ -160,6 +162,54 @@
             setGoalCounts(goals);
             setShotLog(slog);
             setGoalLog(glog);
+          };
+
+          const showUndoToast = (action) => {
+            clearTimeout(undoTimerRef.current);
+            setUndoAction(action);
+            undoTimerRef.current = setTimeout(() => setUndoAction(null), 5000);
+          };
+
+          const handleUndo = () => {
+            if (!undoAction) return;
+            clearTimeout(undoTimerRef.current);
+            const { type, playerId, period } = undoAction;
+
+            setShotCounts(prev => ({
+              ...prev,
+              [playerId]: {
+                ...prev[playerId],
+                [period]: Math.max((prev[playerId]?.[period] || 0) - 1, 0),
+                total: Math.max((prev[playerId]?.total || 0) - 1, 0)
+              }
+            }));
+            setShotLog(prev => ({
+              ...prev,
+              [playerId]: {
+                ...prev[playerId],
+                [period]: (prev[playerId]?.[period] || []).slice(0, -1)
+              }
+            }));
+
+            if (type === 'goal') {
+              setGoalCounts(prev => ({
+                ...prev,
+                [playerId]: {
+                  ...prev[playerId],
+                  [period]: Math.max((prev[playerId]?.[period] || 0) - 1, 0),
+                  total: Math.max((prev[playerId]?.total || 0) - 1, 0)
+                }
+              }));
+              setGoalLog(prev => ({
+                ...prev,
+                [playerId]: {
+                  ...prev[playerId],
+                  [period]: (prev[playerId]?.[period] || []).slice(0, -1)
+                }
+              }));
+            }
+
+            setUndoAction(null);
           };
 
           const triggerFlash = (playerId, type) => {
@@ -215,6 +265,7 @@
               }
             }));
             triggerFlash(playerId, 'shot');
+            showUndoToast({ type: 'shot', playerId, period: currentPeriod });
           };
 
           const recordGoal = (playerId) => {
@@ -257,6 +308,7 @@
               }
             }));
             triggerFlash(playerId, 'goal');
+            showUndoToast({ type: 'goal', playerId, period: currentPeriod });
           };
 
           const handlePointerDown = (playerId) => {
@@ -444,6 +496,8 @@
             setTouchStartTime(null);
             setEditingLines(false);
             setSwapPlayer(null);
+            clearTimeout(undoTimerRef.current);
+            setUndoAction(null);
             setGameActive(false);
 
             const gameToSave = {
@@ -1053,7 +1107,7 @@
             return (
               <div className="min-h-screen bg-slate-900 p-4">
                 <div className="max-w-md mx-auto bg-slate-800 rounded-lg p-6">
-                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.5</span></h1>
+                  <h1 className="text-2xl font-bold text-white mb-6">Hockey Tracker <span className="text-sm text-slate-400 font-normal">v1.7</span></h1>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm text-slate-300 mb-2">Opponent</label>
@@ -1106,7 +1160,7 @@
                       <div className="grid grid-cols-3 gap-2">
                         {players.filter(p => p.position === 'F' && p.line === line).map(p => {
                           const isFlashing = flashPlayer?.id === p.id;
-                          const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                          const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-red-500 text-white' : 'bg-yellow-400 text-black') : '';
                           const isSwapSelected = editingLines && swapPlayer?.id === p.id;
                           const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                           return (
@@ -1124,11 +1178,23 @@
                     </div>
                   ))}
                 </div>
+                {undoAction && (() => {
+                  const p = players.find(pl => pl.id === undoAction.playerId);
+                  const label = undoAction.type === 'goal'
+                    ? `GOAL recorded for #${p?.number} ${p?.name}`
+                    : `Shot recorded for #${p?.number} ${p?.name}`;
+                  return (
+                    <div className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 mb-3 flex justify-between items-center">
+                      <span className="text-sm text-slate-200">{label}</span>
+                      <button onClick={handleUndo} className="ml-4 bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-1.5 rounded text-sm">Undo</button>
+                    </div>
+                  );
+                })()}
                 <div className="bg-slate-800 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {players.filter(p => p.position === 'D' && p.line === activeDefenceLine).map(p => {
                       const isFlashing = flashPlayer?.id === p.id;
-                      const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                      const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-red-500 text-white' : 'bg-yellow-400 text-black') : '';
                       const isSwapSelected = editingLines && swapPlayer?.id === p.id;
                       const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                       return (
@@ -1148,7 +1214,7 @@
                       <div className="grid grid-cols-2 gap-2">
                         {players.filter(p => p.position === 'D' && p.line === line).map(p => {
                           const isFlashing = flashPlayer?.id === p.id;
-                          const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-amber-400 text-black' : 'bg-yellow-500 text-black') : '';
+                          const flashClass = isFlashing ? (flashPlayer.type === 'goal' ? 'bg-red-500 text-white' : 'bg-yellow-400 text-black') : '';
                           const isSwapSelected = editingLines && swapPlayer?.id === p.id;
                           const isSwapTarget = editingLines && swapPlayer && swapPlayer.id !== p.id;
                           return (
